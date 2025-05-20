@@ -1,0 +1,47 @@
+>To do list:
+    1. After encountering the error -> stop the evolution and save a log file.
+        a. In the the log file the time step and error message need to be uncluded.
+            i. Landau matching -> Non of the eignvalues are posive
+
+    2. Incuding dynamical step for RK.
+    Status: done
+
+    3. Test more advanced RK methods.
+    Status:
+
+    4. Include mass scale to the system.
+    Status:
+
+    5. Include HDF5 format.
+    Status:
+
+    6. Include ROOT.
+    Status: partially done
+
+    7. The observables can be calculated on the fly. Put them in the main loop later.
+    Status:
+
+    8. Many functions in small_opacity file is a copy paste of those in initial state and RK4MoC. 
+        It is very unprofessional. Write a single file to use functions in different cases.
+    Status: Not relevant
+    
+    9. The initial state functions return a discretize grid. We can use the more efficient method to use the output as an argument 
+        of a void function.
+    Status: done
+
+    10. The dynamical grid is implemented. But I believe the interpolation along vp is written very messy. It should be written in a more 
+        efficient way.
+    Status:
+
+    11. We can add a C++ROOT wrapper to save the UrQMD result directly to a ROOT file. At the moment, we read .dat file and save it as a .root. 
+    Status:
+    
+The improvements suggestion from Numerical Recipes
+    1. Roundoff Error (section 1.1.2 and 5.6)
+        a. Check if there is any case similar to the example in 5.6 and try to avoid it.
+    2. I should be able to use more constructors.
+        a. Check if in the code I can use scope "{" and "}" to release memory (section 1.3.2)
+    3. Clearly I can use functors (section 1.3.3) to pass findneighbours, or even collision kernels
+       to the RK4 case.
+    4. Check if the inheritances are really needed (maybe good to keep). If not remove them 
+       for simplicity. 

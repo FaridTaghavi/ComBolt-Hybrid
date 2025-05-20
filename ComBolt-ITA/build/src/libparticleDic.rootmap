@@ -1,0 +1,8 @@
+{ decls }
+namespace std {  }
+
+[ libparticleDic.so ]
+# List of selected classes
+class particle
+class vector<particle>
+header particle.h

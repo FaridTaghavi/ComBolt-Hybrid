@@ -1,0 +1,8 @@
+build/
+dist/
+*.egg-info/
+*.pkl
+*.pyc
+*.c
+*.so
+.coverage

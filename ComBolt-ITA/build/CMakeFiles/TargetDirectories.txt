@@ -1,0 +1,8 @@
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/CMakeFiles/ComBolt-ITA.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/CMakeFiles/edit_cache.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/CMakeFiles/rebuild_cache.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/src/CMakeFiles/root_admin.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/src/CMakeFiles/particle_Dic.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/src/CMakeFiles/src.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/src/CMakeFiles/edit_cache.dir
+/home/farid/MyRepositories/KineticTheory/kineticTheory/build/src/CMakeFiles/rebuild_cache.dir

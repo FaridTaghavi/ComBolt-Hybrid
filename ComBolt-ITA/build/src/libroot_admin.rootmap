@@ -1,0 +1,4 @@
+[ libroot_admin.so ]
+# List of selected classes
+class ROOT_admin
+header ROOT_admin.h

@@ -1,0 +1,11 @@
+{ decls }
+namespace std {  }
+
+[ libparticle_Dic.so ]
+# List of selected classes
+class particle_frzout
+class particle_urqmd
+class vector<particle_frzout>
+class vector<particle_urqmd>
+header particle_frzout.h
+header particle_urqmd.h
