@@ -75,8 +75,8 @@ REMOVE_THRESHOLD = 5e-7    # Remove the vz node if its distane to vz = 0 is REMO
 
 # Saving options
 # OUTPUT_DIR = "/scratch8/ge57vag/26-10Sep2025-ComBolt-OO/evolution/"
-OUTPUT_DIR = "/scratch8/ge57vag/26-10Sep2025-ComBolt-OO/"
-TEMP_PATH =  "/scratch8/ge57vag/26-10Sep2025-ComBolt-OO/temp/"
+OUTPUT_DIR = ""
+TEMP_PATH =  "/temp/"
 ROOTFILE_NAME = "ComBolt-events"
 SURFACE_DIR = TEMP_PATH
 SAVE_BD          = False
@@ -106,17 +106,8 @@ QUITE_MODE = False # True: no evolution progress message
 
 use_target_projectile_from_folder = True
 
-
-
-Oxygen_1 = "/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/O_and_Ne_samples/NLEFT_dmin_0.5fm_negativeweights_O.h5";
-Oxygen_2 = "/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/O_and_Ne_samples/NLEFT_dmin_0.5fm_positiveweights_O.h5";
-Oxygen_3 = "/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/O_and_Ne_samples/PGCM_clustered_dmin0_O.h5";
-Oxygen_4 = "/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/O_and_Ne_samples/PGCM_uniform_dmin0_O.h5";
-
-Neon_1   = "/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/O_and_Ne_samples/NLEFT_dmin_0.5fm_negativeweights_Ne.h5";
-
-target     = Oxygen_2
-projectile = Oxygen_2
+target     = "Pb"
+projectile = "Pb"
 trento_norm = 70
 reduced_thickness_function = 0.0
 fluctuation = 1.92
