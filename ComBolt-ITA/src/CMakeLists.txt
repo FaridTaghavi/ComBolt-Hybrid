@@ -1,15 +1,17 @@
 ROOT_GENERATE_DICTIONARY(root_admin ROOT_admin.h LINKDEF LinkDef.h)
-ROOT_GENERATE_DICTIONARY(particle_Dic particle_frzout.h particle_urqmd.h LINKDEF LinkDef_particle.h)
+ROOT_GENERATE_DICTIONARY(particle_Dic initial_info.h particle_frzout.h particle_urqmd.h LINKDEF LinkDef_particle.h)
 
 add_library(src SHARED 
     ROOT_admin.cpp
     root_admin.cxx
+    initial_info.cpp
     particle_frzout.cpp
     particle_urqmd.cpp
     particle_Dic.cxx
     collision_kernel.h
     initial_state.h
     Administration.cpp
+    lattice_EOS.h
     # Butcher_tableaus.h
     grid.h
     BoltzEQ_solver.h

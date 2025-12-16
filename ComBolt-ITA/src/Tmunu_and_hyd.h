@@ -60,7 +60,7 @@ public:
             lat_inf.Z2_symmetry ? Z2 = 2. : Z2 = 1.;
             
             Tmunu_integrnd_O.Ttautau  = 1 / (4 * M_PI) * F * Z2;
-            Tmunu_integrnd_O.Ttaueta  = 1 / (4 * M_PI) *  vp  / tau * F  * (2 - Z2); //Zero because of  Z2 symm and odd terrm with respect to vp
+            Tmunu_integrnd_O.Ttaueta  = 1 / (4 * M_PI) *  vp  / tau * F  * (2 - Z2); // Zero because of  Z2 symm and odd terrm with respect to vp
             Tmunu_integrnd_O.Txx      = 1 / (4 * M_PI) * (1 - vp * vp) * std::cos( vphi) * std::cos( vphi) * F * Z2;
             Tmunu_integrnd_O.Txy      = 1 / (4 * M_PI) * (1 - vp * vp) * std::cos( vphi) * std::sin( vphi) * F * Z2;
             Tmunu_integrnd_O.Tetaeta  = 1 / (4 * M_PI) * (vp * vp) / (tau * tau) * F * Z2;
@@ -258,6 +258,32 @@ public:
         };
     };
 
+    struct effective_temperature
+    {
+        void operator()(const parameters_class &params, 
+                        const latticeEOS_Table &EOS_table, 
+                        const hydrodynamic_field &hyd,
+                        double &T_eff)
+        {
+            if (params.medium_info_.EOS_mode== 0) {
+                
+                T_eff = std::pow(hyd.ed / params.medium_info_.C0, 0.25); // Ideal EOS
+           
+            } else if (params.medium_info_.EOS_mode== 1) {
+                
+                LatticeEOSInverse eos_inv(EOS_table);
+                eos_inv.get_T_from_ed(hyd.ed, T_eff);
+
+            } else {
+
+                std::cerr << "The EOS_mode is not defined.\n";
+                throw std::runtime_error("The EOS_mode is not defined.");
+
+            }
+        };
+        
+    };
+
     struct Tmunu_from_BoltzmannDist
     {
         const lattice &lattice_;
@@ -342,17 +368,20 @@ public:
         const lattice &lattice_;
         Tmunu_and_hydro_from_BoltzmannDist(const lattice &latt ) : lattice_(latt) {}
         
-        void operator()(const parameters_class::lattice_info &l_inf,
-                        const parameters_class::multicore_parameters &ncore,
+        void operator()(const parameters_class &params,
+                        const latticeEOS_Table &EOS_table,
+                        // const parameters_class::lattice_info &l_inf,
+                        // const parameters_class::multicore_parameters &ncore,
                         const Field_grid &BD, Tmunu_grid &discrete_Tmunu, Hydro_grid &discrete_hyd)
         {
+
             // iniAxGrid = init_state.initiate_axis(l_inf);
             size_t position_dim = lattice_.axis.x.size() * lattice_.axis.y.size();
-            
+                        
             Tmunu_grid Tmunu_Grd(position_dim);
             Hydro_grid Hydro_Grd(position_dim);
 
-            #pragma omp parallel for num_threads(ncore.number_of_cores_integration)
+            #pragma omp parallel for num_threads(params.multicore_parameters_.number_of_cores_integration)
             for(size_t ind = 0; ind < position_dim; ++ind)
             {   
                 std::array<size_t, 2> ij;
@@ -361,11 +390,14 @@ public:
 
                 Tmunu_from_BoltzmannDist Tmunu(lattice_);
                 Landau_matching<energy_momentum_field > Landau_match;
+                effective_temperature effective_temperature;
                 energy_momentum_field Tmunu_result;
-                Tmunu(l_inf, ncore, BD, ij[0], ij[1], Tmunu_result);
+                Tmunu(params.lattice_info_, params.multicore_parameters_, BD, ij[0], ij[1], Tmunu_result);
                 hydrodynamic_field hydField;
 
                 Landau_match( Tmunu_result, hydField );
+
+                effective_temperature(params, EOS_table, hydField, hydField.T_eff);
 
                 Tmunu_Grd[ind] = Tmunu_result;
                 Hydro_Grd[ind] = hydField;

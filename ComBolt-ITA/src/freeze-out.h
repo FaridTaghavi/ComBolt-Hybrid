@@ -135,13 +135,27 @@ struct cornelius_on_action
                 )    
     {
                 bool intersect = true;
-                double epsilon_FO = param.medium_info_.epsFO; // 1/fm^4
+                double epsilon_FO, dummuy_P;
 
-                const double DTau = 1.0 * h; //Time spacing, we keep as the evolution time step, since it is dynamically changing
-                const double DX   = 1.0 * lattice_I.axis.x[1] - lattice_I.axis.x[0];
-                const double DY   = 1.0 * lattice_I.axis.y[1] - lattice_I.axis.y[0];
+                if (param.dissipation_info_.dissipation_mode == 0 || param.dissipation_info_.dissipation_mode == 1)
+                {
+                    epsilon_FO = param.medium_info_.epsFO; // 1/fm^4
+                } else if (param.dissipation_info_.dissipation_mode == 2) {
+                    lattice_ed_pressure( param.medium_info_.TFO, 
+                                        epsilon_FO, 
+                                        dummuy_P);
+                    // std::cout << "Freeze-out energy " << epsilon_FO << "\n";
+                } else {
+                    std::cerr << "The dissipation mode is not defined.\n";
+                    return;
+                }
                 
-                double dx[3] = {DTau,DX,DY};
+                const int step = 1;
+                const double DTau = 1.0 * h; //Time spacing, we keep as the evolution time step, since it is dynamically changing
+                const double DX   = 1.0 * (lattice_I.axis.x[step] - lattice_I.axis.x[0]);
+                const double DY   = 1.0 * (lattice_I.axis.y[step] - lattice_I.axis.y[0]);
+                
+                double dx[3] = {DTau, DX, DY};
                 Cornelius* cornelius_ptr = new Cornelius();
                 cornelius_ptr->init(dimension, epsilon_FO, dx);
             
@@ -157,13 +171,14 @@ struct cornelius_on_action
                 }
                 found_freeze_out = false;
 
-                for (size_t ix=0; ix < lattice_I.axis.x.size() - 1; ix++){
-                    for (size_t iy=0; iy < lattice_I.axis.y.size() - 1; iy++){
+                for (size_t ix=0; ix < lattice_I.axis.x.size() - 1; ix += step){
+                    for (size_t iy=0; iy < lattice_I.axis.y.size() - 1; iy += step){
+                        // ------------------- AGAIN in hyd the ij -> ji problem!! -------------------
                         size_t hyd_ind_00, hyd_ind_01, hyd_ind_10, hyd_ind_11;
                         lattice_I.grid_index_position(ix, iy, hyd_ind_00);
-                        lattice_I.grid_index_position(ix, iy+1, hyd_ind_01);
-                        lattice_I.grid_index_position(ix+1, iy, hyd_ind_10);
-                        lattice_I.grid_index_position(ix+1, iy+1, hyd_ind_11);
+                        lattice_I.grid_index_position(ix, iy+1, hyd_ind_10); // Fix the bug here
+                        lattice_I.grid_index_position(ix+1, iy, hyd_ind_01);  // Fix the bug here
+                        lattice_I.grid_index_position(ix+1, iy+1, hyd_ind_11); 
                         intersect=true;
                         if ((discrete_hyd[hyd_ind_11].ed - epsilon_FO)*(discret_hyd_prev_step[hyd_ind_00].ed - epsilon_FO) > 0.)
                             if ((discrete_hyd[hyd_ind_10].ed - epsilon_FO)*(discret_hyd_prev_step[hyd_ind_01].ed - epsilon_FO) > 0.)
@@ -190,7 +205,9 @@ struct cornelius_on_action
                             // std::cout << "Number of elements: " << cornelius_ptr->get_Nelements() << std::endl;
                             for (int ii = 0; ii < dimension; ii++){
                                 // vol_element[ii] = cornelius_ptr->get_normal_elem(kk, ii);
-                                surface.sigma_mu[ii] = cornelius_ptr->get_normal_elem(kk, ii);
+                                // int sign = (ii == 0) ? 1 : -1;
+                                int sign = 1;
+                                surface.sigma_mu[ii] = sign * cornelius_ptr->get_normal_elem(kk, ii);
                             }
                             
                             // The time of the previous step shifted to centrois
@@ -204,18 +221,20 @@ struct cornelius_on_action
                             const double tau0 = discret_hyd_prev_step[hyd_ind_11].tau;
                             const double tau1 = discrete_hyd[hyd_ind_11].tau;
                             const double x0 = discrete_hyd[hyd_ind_00].x;  
-                            const double x1 = discrete_hyd[hyd_ind_01].x; // Fix the bug here
+                            // const double x1 = discrete_hyd[hyd_ind_01].x; // Fix the bug here
+                            const double x1 = discrete_hyd[hyd_ind_10].x; 
                             const double y0 = discrete_hyd[hyd_ind_00].y;
-                            const double y1 = discrete_hyd[hyd_ind_10].y; // Fix the bug here
+                            // const double y1 = discrete_hyd[hyd_ind_10].y; // Fix the bug here
+                            const double y1 = discrete_hyd[hyd_ind_01].y; 
                             
                             const surface_element vx_tau0 = { 
-                                discret_hyd_prev_step[hyd_ind_11].ux / discret_hyd_prev_step[hyd_ind_11].utau,
+                                discret_hyd_prev_step[hyd_ind_00].ux / discret_hyd_prev_step[hyd_ind_00].utau,
                                 discret_hyd_prev_step[hyd_ind_01].ux / discret_hyd_prev_step[hyd_ind_01].utau,
                                 discret_hyd_prev_step[hyd_ind_10].ux / discret_hyd_prev_step[hyd_ind_10].utau,
                                 discret_hyd_prev_step[hyd_ind_11].ux / discret_hyd_prev_step[hyd_ind_11].utau
                             };
                             const surface_element vy_tau0 = { 
-                                discret_hyd_prev_step[hyd_ind_11].uy / discret_hyd_prev_step[hyd_ind_11].utau,
+                                discret_hyd_prev_step[hyd_ind_00].uy / discret_hyd_prev_step[hyd_ind_00].utau,
                                 discret_hyd_prev_step[hyd_ind_01].uy / discret_hyd_prev_step[hyd_ind_01].utau,
                                 discret_hyd_prev_step[hyd_ind_10].uy / discret_hyd_prev_step[hyd_ind_10].utau,
                                 discret_hyd_prev_step[hyd_ind_11].uy / discret_hyd_prev_step[hyd_ind_11].utau
@@ -223,44 +242,44 @@ struct cornelius_on_action
                             const std::array<surface_element, 2> vi_tau0 = {vx_tau0, vy_tau0};
                             
                             const surface_element vx_tau1 = { 
-                                discrete_hyd[hyd_ind_11].ux / discrete_hyd[hyd_ind_11].utau,
+                                discrete_hyd[hyd_ind_00].ux / discrete_hyd[hyd_ind_00].utau,
                                 discrete_hyd[hyd_ind_01].ux / discrete_hyd[hyd_ind_01].utau,
                                 discrete_hyd[hyd_ind_10].ux / discrete_hyd[hyd_ind_10].utau,
                                 discrete_hyd[hyd_ind_11].ux / discrete_hyd[hyd_ind_11].utau
                             };
                             const surface_element vy_tau1 = { 
-                                discrete_hyd[hyd_ind_11].uy / discrete_hyd[hyd_ind_11].utau,
+                                discrete_hyd[hyd_ind_00].uy / discrete_hyd[hyd_ind_00].utau,
                                 discrete_hyd[hyd_ind_01].uy / discrete_hyd[hyd_ind_01].utau,
                                 discrete_hyd[hyd_ind_10].uy / discrete_hyd[hyd_ind_10].utau,
                                 discrete_hyd[hyd_ind_11].uy / discrete_hyd[hyd_ind_11].utau
                             };
                             const std::array<surface_element, 2> vi_tau1 = {vx_tau1, vy_tau1};
 
-                            const surface_element pi_xx_tau0 = { discret_hyd_prev_step[hyd_ind_11].pi_xx, discret_hyd_prev_step[hyd_ind_01].pi_xx,
+                            const surface_element pi_xx_tau0 = { discret_hyd_prev_step[hyd_ind_00].pi_xx, discret_hyd_prev_step[hyd_ind_01].pi_xx,
                                                                  discret_hyd_prev_step[hyd_ind_10].pi_xx, discret_hyd_prev_step[hyd_ind_11].pi_xx };
                             
-                                                                 const surface_element pi_xy_tau0 = { discret_hyd_prev_step[hyd_ind_11].pi_xy, discret_hyd_prev_step[hyd_ind_01].pi_xy,
+                            const surface_element pi_xy_tau0 = { discret_hyd_prev_step[hyd_ind_00].pi_xy, discret_hyd_prev_step[hyd_ind_01].pi_xy,
                                                                  discret_hyd_prev_step[hyd_ind_10].pi_xy, discret_hyd_prev_step[hyd_ind_11].pi_xy };                      
 
-                            const surface_element pi_yy_tau0 = { discret_hyd_prev_step[hyd_ind_11].pi_yy, discret_hyd_prev_step[hyd_ind_01].pi_yy,
+                            const surface_element pi_yy_tau0 = { discret_hyd_prev_step[hyd_ind_00].pi_yy, discret_hyd_prev_step[hyd_ind_01].pi_yy,
                                                                  discret_hyd_prev_step[hyd_ind_10].pi_yy, discret_hyd_prev_step[hyd_ind_11].pi_yy };
                             const std::array<surface_element, 3> pi_ij_tau0 = {pi_xx_tau0, pi_xy_tau0, pi_yy_tau0};
                             
-                            const surface_element pi_xx_tau1 = { discrete_hyd[hyd_ind_11].pi_xx, discrete_hyd[hyd_ind_01].pi_xx ,
+                            const surface_element pi_xx_tau1 = { discrete_hyd[hyd_ind_00].pi_xx, discrete_hyd[hyd_ind_01].pi_xx ,
                                                                  discrete_hyd[hyd_ind_10].pi_xx, discrete_hyd[hyd_ind_11].pi_xx };
 
-                            const surface_element pi_xy_tau1 = { discrete_hyd[hyd_ind_11].pi_xy, discrete_hyd[hyd_ind_01].pi_xy,
+                            const surface_element pi_xy_tau1 = { discrete_hyd[hyd_ind_00].pi_xy, discrete_hyd[hyd_ind_01].pi_xy,
                                                                  discrete_hyd[hyd_ind_10].pi_xy, discrete_hyd[hyd_ind_11].pi_xy };
 
-                            const surface_element pi_yy_tau1 = { discrete_hyd[hyd_ind_11].pi_yy, discrete_hyd[hyd_ind_01].pi_yy,
+                            const surface_element pi_yy_tau1 = { discrete_hyd[hyd_ind_00].pi_yy, discrete_hyd[hyd_ind_01].pi_yy,
                                                                  discrete_hyd[hyd_ind_10].pi_yy, discrete_hyd[hyd_ind_11].pi_yy };
 
                             const std::array<surface_element, 3> pi_ij_tau1 = {pi_xx_tau1, pi_xy_tau1, pi_yy_tau1};
                             
-                            const surface_element Pi_bulk_tau0 = { discret_hyd_prev_step[hyd_ind_11].BulkTensorXX, discret_hyd_prev_step[hyd_ind_01].BulkTensorXX,
+                            const surface_element Pi_bulk_tau0 = { discret_hyd_prev_step[hyd_ind_00].BulkTensorXX, discret_hyd_prev_step[hyd_ind_01].BulkTensorXX,
                                                                    discret_hyd_prev_step[hyd_ind_10].BulkTensorXX, discret_hyd_prev_step[hyd_ind_11].BulkTensorXX };
                             
-                            const surface_element Pi_bulk_tau1 = { discrete_hyd[hyd_ind_11].BulkTensorXX, discrete_hyd[hyd_ind_01].BulkTensorXX,
+                            const surface_element Pi_bulk_tau1 = { discrete_hyd[hyd_ind_00].BulkTensorXX, discrete_hyd[hyd_ind_01].BulkTensorXX,
                                                                    discrete_hyd[hyd_ind_10].BulkTensorXX, discrete_hyd[hyd_ind_11].BulkTensorXX };
 
                             // std::cout << " BulkTensorXX: " << discret_hyd_prev_step[hyd_ind_11].BulkTensorXX << "  "

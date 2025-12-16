@@ -32,6 +32,7 @@ int main(int argc, const char* argv[]) {
             ("save_hydro", po::value<bool>(), "Save the hydrodynamic fields")
             ("save_Tmunu", po::value<bool>(), "Save the energy-momentum tensor")
             ("save_observables", po::value<bool>(), "Save the observables")
+            ("save_init_info", po::value<bool>(), "Save the initial conditions information")
             ("nx", po::value<size_t>(), "Number of grid points in x direction")
             ("xmax", po::value<double>(), "Maximum value of x")
             ("nvp", po::value<size_t>(), "Number of grid points in v_p direction")
@@ -58,9 +59,14 @@ int main(int argc, const char* argv[]) {
             ("number_of_cores_calc_obs", po::value<unsigned int>(), "Number of cores for calculating observables")
             ("dissipation_mode", po::value<unsigned int>(), "Dissipation mode")
             ("gamma_hat", po::value<double>(), "Gamma hat")
-            ("eta_over_s", po::value<double>(), "Eta over s")
+            ("eta_over_s_min", po::value<double>(), "Eta over s minimum")
+            ("eta_over_s_slope", po::value<double>(), "Eta over s slope")
+            ("eta_over_s_pow", po::value<double>(), "Eta over s power")
+            ("eta_over_s_Tc", po::value<double>(), "Eta over s Tc")
             ("C0", po::value<double>(), "conformal equation of state: energy = C0 * T^4")
             ("epsFO", po::value<double>(), "freeze-out energy density")
+            ("TFO", po::value<double>(), "freeze-out temperature")
+            ("EOS_mode", po::value<unsigned int>(), "Equation of state mode")
             ("calculate_freeze_out", po::value<bool>(), "Calculate freeze-out")
             ("end_evol_last_frozen_cell", po::value<bool>(), "End evolution at last frozen cell")
             ("help,h", "Help screen");
@@ -76,7 +82,8 @@ int main(int argc, const char* argv[]) {
             vm.count("save_BD") ? vm["save_BD"].as<bool>() : false,
             vm.count("save_hydro") ? vm["save_hydro"].as<bool>() : true,
             vm.count("save_Tmunu") ? vm["save_Tmunu"].as<bool>() : false,
-            vm.count("save_observables") ? vm["save_observables"].as<bool>() : true
+            vm.count("save_observables") ? vm["save_observables"].as<bool>() : true,
+            vm.count("save_init_info") ? vm["save_init_info"].as<bool>() : true
         };
 
         parameters_class::lattice_info lattice_info{
@@ -104,12 +111,23 @@ int main(int argc, const char* argv[]) {
         
         parameters_class::medium_info medium{
             vm.count("C0") ? vm["C0"].as<double>() : 13.8997, 
-           ( vm.count("epsFO") ? vm["epsFO"].as<double>() : 0.30 ) / parameters_class::hbarC
+           ( vm.count("epsFO") ? vm["epsFO"].as<double>() : 0.30 ) / parameters_class::hbarC,
+           ( vm.count("TFO") ? vm["TFO"].as<double>() : 0.155 ) / parameters_class::hbarC,
+            vm.count("EOS_mode") ? vm["EOS_mode"].as<unsigned int>() : 0
         };
         
+        // parameters_class::dissipation_info dissipation{
+        //     vm.count("dissipation_mode") ? vm["dissipation_mode"].as<unsigned int>() : 0, 
+        //     vm.count("eta_over_s") ? vm["eta_over_s"].as<double>() : 0.1 / (4. * M_PI),
+        //     vm.count("gamma_hat") ? vm["gamma_hat"].as<double>() : 20.0
+        // };
+
         parameters_class::dissipation_info dissipation{
             vm.count("dissipation_mode") ? vm["dissipation_mode"].as<unsigned int>() : 0, 
-            vm.count("eta_over_s") ? vm["eta_over_s"].as<double>() : 0.1 / (4. * M_PI),
+            vm.count("eta_over_s_min") ? vm["eta_over_s_min"].as<double>() : 0.1 / (4. * M_PI),
+            (vm.count("eta_over_s_slope") ? vm["eta_over_s_slope"].as<double>() : 0.0) * parameters_class::hbarC,
+            vm.count("eta_over_s_pow") ? vm["eta_over_s_pow"].as<double>() : 0.0,
+            (vm.count("eta_over_s_Tc") ? vm["eta_over_s_Tc"].as<double>() : 0.155) / parameters_class::hbarC,
             vm.count("gamma_hat") ? vm["gamma_hat"].as<double>() : 20.0
         };
 
@@ -148,8 +166,19 @@ int main(int argc, const char* argv[]) {
         parameters_class::shell_message shell_message{
             vm.count("quiet") ? vm["quiet"].as<bool>() : false
         };
+        parameters_class::lattice_info_massive lattice_info_massive{
+            vm.count("nx") ? vm["nx"].as<size_t>() : 101,
+            vm.count("xmax") ? vm["xmax"].as<double>() : 19.5,
+            vm.count("npT") ? vm["npT"].as<size_t>() : 15,
+            vm.count("nphi_p") ? vm["nphi_p"].as<size_t>() : 15,
+            vm.count("npz") ? vm["npz"].as<size_t>() : 15,
+            vm.count("pT_max") ? vm["pT_max"].as<double>() : 10.0,
+            vm.count("pz_max") ? vm["pz_max"].as<double>() : 10.0,
+            vm.count("Z2_symmetry") ? vm["Z2_symmetry"].as<bool>() : true
+        };
+
         parameters_class params(
-            save_info, lattice_info, numerical_param, initial_vals,
+            save_info, lattice_info, lattice_info_massive, numerical_param, initial_vals,
             medium, dissipation, trento, ampt, interpolation, multicore,
             freeze_out, shell_message
         );

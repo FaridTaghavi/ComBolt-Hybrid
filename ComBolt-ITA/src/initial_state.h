@@ -242,7 +242,7 @@ struct construct_BD_from_AMPT
         fg.resize(totalDim);
 
 
-        #pragma omp parallel for collapse(2) num_threads(13)
+        // #pragma omp parallel for collapse(2) num_threads(13)
         for (std::size_t i = 0; i < lattice_.axis.x.size(); ++i)
             for (std::size_t j = 0; j < lattice_.axis.y.size(); ++j)
                 for (std::size_t k = 0; k < lattice_.axis.vp.size(); ++k)
@@ -294,58 +294,102 @@ struct construct_BD_from_AMPT
 
     }
 };
-struct dissipation
-{
-    void operator()(const parameters_class::dissipation_info &dissipation_inf,
-                    const parameters_class::trento_info &trento_inf,
-                    const parameters_class::medium_info &medium_inf,
-                    const parameters_class::initial_values &init,
-                    double &gamma)
-    {
-        if (dissipation_inf.dissipation_mode == 0)
-        {
-            gamma = 1 / (std::pow(medium_inf.C0, 0.25) * 5 * dissipation_inf.eta_over_s) ;
-        }
-        else if (dissipation_inf.dissipation_mode == 1 && init.initialization == 0)
-        {
-            gamma = dissipation_inf.gamma_hat * std::pow( init.R0 * init.energy_tot_tau0, -0.25 ) / M_PI;
-        }
-        else if (dissipation_inf.dissipation_mode == 1 && init.initialization == 1)
-        {
-            double R0;
-            std::ifstream file(trento_inf.save_folder);          // Open the file
-            if (!file.is_open())
-            {
-                std::cerr << "--> Error opening file: " << trento_inf.save_folder << std::endl;
-            }
 
-            std::string line;
-            double F0_xy, x, y, e_tot, R02;
-            double xmax = trento_inf.grid_max;
-            double dx = trento_inf.grid_step;
-            size_t ix{0}, iy{0};
-            while (std::getline(file, line))
-            {
-                ix = 0;
-                std::istringstream iss(line);
-                while (iss >> F0_xy) 
-                { 
-                    x = -xmax + dx / 2 + ix * dx;
-                    y = -xmax + dx / 2 + iy * dx;
-                    e_tot += F0_xy;
-                    R02 += F0_xy * (x * x + y * y);
-                    ix++;
-                }
-            iy++;
+// This functor finds the maximum value in the Field_grid
+// which will be used to find the maximu temperature in the system.
+// Using the maximum temperature, we can determine the T_max for the lattice EOS table.
+struct max_value_ed
+{
+    void operator()(const Field_grid &grid, double &maxVal) {
+        maxVal = -std::numeric_limits<double>::infinity(); // We start with the lowest possible value, -infinity.
+        for (const auto& field : grid) {
+            if (field.value > maxVal) {
+                // std::cout << "New max found: " << field.value << "\n";
+                maxVal = field.value;
             }
-            R0 = std::sqrt(R02 / e_tot);
-            gamma = dissipation_inf.gamma_hat * ( R0 * init.energy_tot_tau0 ) / M_PI;
         }
-        else
-        {
-            std::cerr << "--> Dissipation mode is not defined.\n";
+        std::cout << "--> Maximum initial energy density: " << maxVal << " [1/fm^4]\n";
+    }
+};
+
+
+// struct dissipation
+// {
+//     void operator()(const parameters_class::dissipation_info &dissipation_inf,
+//                     const parameters_class::trento_info &trento_inf,
+//                     const parameters_class::medium_info &medium_inf,
+//                     const parameters_class::initial_values &init,
+//                     double &gamma)
+//     {
+//         if (dissipation_inf.dissipation_mode == 0)
+//         {
+//             gamma = 1 / (std::pow(medium_inf.C0, 0.25) * 5 * dissipation_inf.eta_over_s) ;
+//             std::cout << "--> gamma from eta/s: " << gamma << "\n";
+//         }
+//         else if (dissipation_inf.dissipation_mode == 1 && init.initialization == 0)
+//         {
+//             gamma = dissipation_inf.gamma_hat * std::pow( init.R0 * init.energy_tot_tau0, -0.25 ) / M_PI;
+//         }
+//         else if (dissipation_inf.dissipation_mode == 1 && init.initialization == 1)
+//         {
+//             double R0;
+//             std::ifstream file(trento_inf.save_folder);          // Open the file
+//             if (!file.is_open())
+//             {
+//                 std::cerr << "--> Error opening file: " << trento_inf.save_folder << std::endl;
+//             }
+// 
+//             std::string line;
+//             double F0_xy, x, y, e_tot, R02;
+//             double xmax = trento_inf.grid_max;
+//             double dx = trento_inf.grid_step;
+//             size_t ix{0}, iy{0};
+//             while (std::getline(file, line))
+//             {
+//                 ix = 0;
+//                 std::istringstream iss(line);
+//                 while (iss >> F0_xy) 
+//                 { 
+//                     x = -xmax + dx / 2 + ix * dx;
+//                     y = -xmax + dx / 2 + iy * dx;
+//                     e_tot += F0_xy;
+//                     R02 += F0_xy * (x * x + y * y);
+//                     ix++;
+//                 }
+//             iy++;
+//             }
+//             R0 = std::sqrt(R02 / e_tot);
+//             gamma = dissipation_inf.gamma_hat * std::pow ( ( R0 * init.energy_tot_tau0 ) / M_PI, -0.25);
+//             std::cout << "--> R0 from Trento: " << R0 << "\n";
+//             std::cout << "--> gamma from Trento: " << gamma << "\n";
+//         }
+//         else if (dissipation_inf.dissipation_mode == 2)
+//         {
+//             std::cout << "--> gamma is determined from constant eta/s and tau_relax(ed) from lattice EOS at each time step.\n";
+//         }
+//         else
+//         {
+//             std::cerr << "--> Dissipation mode is not defined.\n";
+//         }
+//     }
+// };
+
+struct make_lattice_table {
+    void operator()(const double &T_max, const double &dT, 
+                    latticeEOS_Table &table)
+    {
+        const double T_min = 55 / 197.3; // T = 55 MeV  is the minimum temperature in the lattice interpolation function that gives positive energy density, which is well smaller that
+                                    // switching temperature 155 MeV.
+        for (double T = T_min; T <= T_max; T += dT) {
+            double ed, P;
+            lattice_ed_pressure(T, ed, P);
+            if (ed > 0.0) {
+                table.Ts.push_back(T);
+                table.log_eds.push_back(std::log(ed));
+            }
         }
     }
 };
+
 
 #endif // initial_state

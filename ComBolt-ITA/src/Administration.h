@@ -273,11 +273,11 @@ class Timer {
             double duration_seconds = std::chrono::duration<double>(end_time - start_time).count();
 
 
-            // parameters_class::shell_message shell_msg;
-            // if (!shell_msg.quiet)
-            //     std::cout << "Execution time: " << duration_seconds << " seconds" << std::endl;
+            parameters_class::shell_message shell_msg;
+            if (!shell_msg.quiet)
+                std::cout << "Execution time: " << duration_seconds << " seconds" << std::endl;
         }
-    };
+};
 class Administration// : public TObject
 {
 public:

@@ -7,6 +7,9 @@
 
 #ifdef __CLING__
 
+#pragma link C++ class initial_info+;
+#pragma link C++ class std::vector<initial_info>+;
+
 #pragma link C++ class particle_frzout+;
 #pragma link C++ class std::vector<particle_frzout>+;
 

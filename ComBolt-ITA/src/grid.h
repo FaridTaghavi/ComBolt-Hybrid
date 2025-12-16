@@ -61,8 +61,8 @@ struct hydrodynamic_field
 
     double inverseReyn  {0.}; 
     double isotropicity {0.};
-    // bool   freeze_hyper {false};
-    // bool   isotro_hyper {false};
+
+    double T_eff {0.} ; // effective temperature
 };
 
 struct energy_momentum_field
@@ -139,14 +139,18 @@ struct observables
 {
     double tau;
     double eps_tot    {0};
-    double R          {0};
+    double Rsq        {0};
     double eps_2_x    {0};
     double eps_2_y    {0};
+    double eps_3_x    {0};
+    double eps_3_y    {0};
     double eps_p_x    {0};
     double eps_p_y    {0};
     double u_perp     {0};
     double av_invReyn {0};
     double Etr {0};
+    double gamma_hat {0};
+    double life_time {0};
 };
 
 struct freeze_out_vars
@@ -321,5 +325,185 @@ struct lattice
 };
 
 
+struct latticeEOS_Table {
+    std::vector<double> Ts;
+    std::vector<double> log_eds; // ln(ed)
+};
+
+// ========================= Massive ========================
+
+using f_grid = std::vector< double>;
+
+struct axes_grid_massive
+{
+    std::vector<double> x, y, pT, phi_p, pz;
+};
+
+struct lattice_massive
+{
+    axes_grid_massive axis;
+    
+    double dx, dy, nx, ny, xmin, ymin; 
+    double dphi_p,dpT, dpz;
+    
+    // lattice_massive(axes_grid_massive axis_ ) : axis(axis_) {}
+    lattice_massive() = default;
+        
+    void initiate_lattice(  const parameters_class::lattice_info_massive &l_inf,
+                            const parameters_class::initial_values &init_val,
+                            const parameters_class::trento_info &trento_inf
+                         ) 
+    {
+        
+        if (init_val.initialization == 1){
+            
+            double grid_max = trento_inf.grid_max;
+            double grid_step = trento_inf.grid_step;
+            
+            dx = grid_step;
+            dy = grid_step;
+            
+			nx = static_cast<size_t>(2*grid_max / dx) ;
+            ny = static_cast<size_t>(2*grid_max / dy) ;
+            
+			xmin = -grid_max + dx / 2;
+            ymin = -grid_max + dy / 2;
+        
+        } else if (init_val.initialization == 0 || init_val.initialization == 2) {
+            dx = (l_inf.x_max - l_inf.x_min) / (l_inf.n_x - 1);
+            dy = (l_inf.y_max - l_inf.y_min) / (l_inf.n_y - 1);
+            nx = l_inf.n_x;
+            ny = l_inf.n_y;
+            xmin = l_inf.x_min;
+            ymin = l_inf.y_min;
+        } else {
+            std::cerr << "The lattice is not defined.\n";
+            return;
+        }
+        
+
+        dphi_p = 2 * M_PI / l_inf.n_phi_p;
+        dpT = l_inf.pT_max  / (l_inf.n_pT - 1);
+        dpz = l_inf.pz_max  / (l_inf.n_pz - 1);
+        
+        
+        // We first fix the size of the vector and then fill it.
+        axis.x.resize(nx);
+        axis.y.resize(ny);
+        axis.pT.resize(l_inf.n_pT);
+        axis.phi_p.resize(l_inf.n_phi_p);
+        axis.pz.resize(l_inf.n_pz);
+        
+        double pz_min;
+        if (l_inf.Z2_symmetry) {
+            pz_min = 0.0;
+        } else {
+            // check if n_pz is odd or even
+            if (l_inf.n_pz % 2 == 0) {
+                std::cerr << "n_pz should be odd for Z2 symmetry false to have pz = 0 in the grid.\n";
+                throw std::runtime_error("n_pz should be odd for Z2 symmetry false to have pz = 0 in the grid.");
+                return;
+            }
+            pz_min = -l_inf.pz_max;
+        }
+
+        for (size_t ix = 0; ix < nx; ++ix)
+        {
+            axis.x[ix] = xmin + ix * dx; 
+        }
+        for (size_t iy = 0; iy <ny; ++iy)
+        {
+            axis.y[iy] = ymin + iy * dy; 
+        }
+        for (size_t iphi_p = 0; iphi_p < l_inf.n_phi_p; ++iphi_p)
+        {
+            axis.phi_p[iphi_p] = iphi_p * dphi_p; 
+        }
+        for (size_t ipT = 0; ipT < l_inf.n_pT; ++ipT)
+        {
+            axis.phi_p[ipT] = ipT * dpT; 
+        }
+        for (size_t ipz = 0; ipz < l_inf.n_pz; ++ipz)
+        {
+            axis.pz[ipz] = pz_min + ipz * dpz; 
+        }
+ 
+    }
+    
+    void grid_index(const size_t &i_x, const size_t &i_y, const size_t &i_pT, const size_t &i_phi_p, const size_t &i_pz, size_t &index) const 
+    {
+        size_t Nx = axis.x.size();
+        size_t Ny = axis.y.size();
+        size_t NpT = axis.pT.size();
+        size_t Nphi_p = axis.phi_p.size();
+        size_t Npz = axis.pz.size();
+        
+        if (i_x >= Nx || i_y >= Ny || i_pT >= NpT || i_phi_p >= Nphi_p || i_pz >= Npz){
+            std::cerr << "grid_index: Index overflow\n";
+            throw std::runtime_error("grid_index: Index overflow");
+        };
+        index = i_x * Ny * NpT * Nphi_p * Npz + i_y * NpT * Nphi_p * Npz + i_pT * Nphi_p * Npz + i_phi_p * Npz + i_pz;
+    };
+
+    void grid_index_position(const size_t &i_x, const size_t &i_y, size_t &index) const 
+    {
+        size_t Nx = axis.x.size();
+        size_t Ny = axis.y.size();
+        
+        if (i_x >= Nx || i_y >= Ny){
+            std::cerr << "grid_index: Index overflow\n";
+            throw std::runtime_error("grid_index: Index overflow");
+            // std::cout << "Index overflow\n";
+            // return;
+        };
+
+        index = i_x * Ny + i_y;
+    };
+
+    void inverse_grid_index_position (const size_t &ind, std::array<size_t, 2> &output) const
+    {
+        size_t i,j;
+        size_t dim2;
+
+        dim2 = axis.y.size();
+        j = ind % dim2;
+        i = (ind - j) / dim2;
+
+        // output = {i,j}; 
+        output = {j,i}; // IMPORTANT!!!! Why TRANSPOSE is required? DEBUG IT LATER!!
+    };
+    
+    void inverse_grid_index(const size_t &ind_, std::array<size_t, 5> &output) const
+    {
+        size_t i,j,k,l, m;
+        size_t dim2, dim3, dim4, dim5;
+        size_t ind = ind_;
+        dim2 = axis.y.size();
+        dim3 = axis.pT.size();
+        dim4 = axis.phi_p.size();
+        dim5 = axis.pz.size();
+
+        m = ind % dim5;
+        ind = (ind - m) / dim5;
+        l = ind % dim4;
+        ind = (ind - l) / dim4;
+        k = ind % dim3;
+        ind = (ind - k) / dim3;
+        j = ind % dim2;
+        ind = (ind - j) / dim2;
+        i = ind;
+
+        output = {i, j, k, l, m};
+    };
+
+    void project_to_poistion_grid_index(const size_t &ind, size_t &output) const
+    {
+        size_t dim2 = axis.y.size();
+        std::array<size_t, 5> ijklm;
+        inverse_grid_index(ind, ijklm);
+        output = ijklm[0] + dim2 * ijklm[1];
+    }
+
+};
 
 #endif //grid

@@ -10,18 +10,65 @@ import numpy as np
 import frzout
 import ROOT
 ROOT.gSystem.Load("build/src/libsrc.so")  
-from ROOT import particle_frzout, particle_urqmd, std
+from ROOT import particle_frzout, particle_urqmd, initial_info, std
 import array
 import os
 import subprocess
 import glob
 import shutil
-from input_parameters import *
+import matplotlib.pyplot as plt
+
+import importlib.util
+import sys
 
 
-if INIT_MODE == 1:
+
+
+
+
+if len(sys.argv) < 2:
+    print("Usage: python3 script.py path/to/input_parameters.py [TEMP_PATH] [OUTPUT_DIR] [OUTPUT_FILE]")
+    sys.exit(1)
+
+param_file_path = sys.argv[1]
+temp_path = sys.argv[2] if len(sys.argv) > 2 else None
+out_path = sys.argv[3] if len(sys.argv) > 3 else None
+out_file = sys.argv[4] if len(sys.argv) > 4 else None
+
+# Dynamically import input_parameters.py
+spec = importlib.util.spec_from_file_location("input_parameters", param_file_path)
+input_parameters = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(input_parameters)
+
+# Use TEMP_PATH and OUT_PATH from command line if provided, otherwise default
+if temp_path is None:
+    print("The TEMP_PATH is set from input parameter file.")
+    temp_path = input_parameters.TEMP_PATH
+if out_path is None:
+    print("The OUTPUT_PATH is set from input parameter file.")
+    out_path = input_parameters.OUTPUT_DIR
+if out_file is None:
+    print("The OUTPUT_FILE is ComBolt-events.root.")
+    out_file = input_parameters.ROOTFILE_NAME
+
+
+# # Get path to input_parameters.py from command-line
+# if len(sys.argv) < 2:
+#     print("Usage: python3 script.py path/to/input_parameters.py")
+#     sys.exit(1)
+# 
+# param_file_path = sys.argv[1]
+# 
+# # Dynamically import the module
+# spec = importlib.util.spec_from_file_location("input_parameters", param_file_path)
+# input_parameters = importlib.util.module_from_spec(spec)
+# spec.loader.exec_module(input_parameters)
+
+
+
+if input_parameters.INIT_MODE == 1:
     path_of_IS = "/home/farid/MyRepositories/KineticTheory/trento-master/events/event_set9/"
-elif INIT_MODE == 2:
+elif input_parameters.INIT_MODE == 2:
     path_of_IS = "/home/farid/MyRepositories/KineticTheory/kineticTheory/initial_state_AMPT/IS/"
 
 
@@ -36,28 +83,57 @@ def build_TrENTo_cmd(folder_path):
         print(f"Deleted folder: {folder_path}")
     # else:
     #     print(f"Folder does not exist: {folder_path}")
-    
+   
+    # cmd = [
+    #     "../trento-master/build/src/trento",
+    # ]
+    # 
+    # # Decide whether to use target/projectile names or input files
+    # if input_parameters.use_files:  # you can add this flag in your class
+    #     cmd.extend([input_parameters.file1, input_parameters.file2])
+    # else:
+    #     cmd.extend([input_parameters.target, input_parameters.projectile])
+    # 
+    # # Now add the rest of the options
+    # cmd.extend([
+    #     "--normalization", str(1),
+    #     "--grid-max", str(input_parameters.grid_max),
+    #     "--grid-step", str(input_parameters.grid_step),
+    #     "--output", folder_path,
+    #     "--reduced-thickness", str(input_parameters.reduced_thickness_function),
+    #     "--fluctuation", str(input_parameters.fluctuation),
+    #     "--nucleon-width", str(input_parameters.nucleon_width),
+    #     "--constit-width", str(input_parameters.constituent_width),
+    #     "--constit-number", str(input_parameters.constituent_number),
+    #     "--nucleon-min-dist", str(input_parameters.nucleon_minimum_distance),
+    #     "--cross-section", str(input_parameters.cross_section),
+    #     "--no-header",
+    #     "--quiet"
+    # ])
+
+ 
     cmd = [
         "../trento-master/build/src/trento",
-        target, projectile,
-        "--normalization", str(1),      # The normalization is set in the ComBolt initiale_state header
-        "--grid-max", str(grid_max),
-        "--grid-step", str(grid_step),
+        input_parameters.target, input_parameters.projectile,
+        # "--normalization", str(1),      # The normalization is set in the ComBolt initiale_state header
+        "--normalization", str(input_parameters.trento_norm),  
+        "--grid-max", str(input_parameters.grid_max),
+        "--grid-step", str(input_parameters.grid_step),
         "--output", folder_path,
-        "--reduced-thickness", str(reduced_thickness_function),
-        "--fluctuation", str(fluctuation),
-        "--nucleon-width", str(nucleon_width),
-        "--constit-width", str(constituent_width),
-        "--constit-number", str(constituent_number),
-        "--nucleon-min-dist", str(nucleon_minimum_distance),
-        "--cross-section", str(cross_section),
+        "--reduced-thickness", str(input_parameters.reduced_thickness_function),
+        "--fluctuation", str(input_parameters.fluctuation),
+        "--nucleon-width", str(input_parameters.nucleon_width),
+        "--constit-width", str(input_parameters.constituent_width),
+        "--constit-number", str(input_parameters.constituent_number),
+        "--nucleon-min-dist", str(input_parameters.nucleon_minimum_distance),
+        "--cross-section", str(input_parameters.cross_section),
         "--no-header",
         "--quiet"
     ]
-    if not minimum_bias:
+    if not input_parameters.minimum_bias:
         cmd.extend([
-                    "--b-min", str(minimum_impact_parameter),
-                    "--b-max", str(maximum_impact_parameter)
+                    "--b-min", str(input_parameters.minimum_impact_parameter),
+                    "--b-max", str(input_parameters.maximum_impact_parameter)
                 ])
     return cmd
 def build_AMPT_cmd(folder_path):
@@ -118,50 +194,55 @@ def build_ComBolt_cmd(IS_FILE, init_mode):
     
     cmd = [
         "./build/ComBolt-ITA",
-        "--output", OUTPUT_DIR,
-        "--quiet", str(QUITE_MODE),
-        "--surface_output", SURFACE_DIR,
+        "--output", out_path,
+        "--quiet", str(input_parameters.QUITE_MODE),
+        "--surface_output", temp_path,
         "--trento_file", trento_file,
-        "--save_BD", str(SAVE_BD),
-        "--save_hydro", str(SAVE_HYDRO),
-        "--save_Tmunu", str(SAVE_TMUNU),
-        "--save_observables", str(SAVE_OBSERVABLES),
-        "--nx", str(NX),
-        "--xmax", str(XMAX),
-        "--nvp", str(NVP),
-        "--nvphi", str(NVPHI),
-        "--Z2_symmetry", str(Z2_SYMMETRY),
-        "--h", str(H),
-        "--tau_max", str(TAU_MAX),
-        "--tau0", str(TAU0),
-        "--initialization_mode", str(INIT_MODE),
-        "--momentum_isotropicity", str(MOM_ISO),
-        "--energy_tot_tau0", str(ENERGY_TAU0),
-        "--R0", str(R0),
-        "--ellipticity", str(ELLIPTICITY),
-        "--C0", str(C0),
-        "--epsFO", str(EPSFO),
-        "--dissipation_mode", str(DISS_MODE),
-        "--gamma_hat", str(GAMMA_HAT),
-        "--eta_over_s", str(ETA_S),
-        "--grid_max", str(grid_max),
-        "--grid_step", str(grid_step),
-        "--norm", str(NORM),
-        "--smear_sigmaV", str(SMEAR_SIGMA_V),
-        "--smear_lambda", str(SMEAR_LAMBDA),
-        "--smear_sigmaPhi", str(SMEAR_SIGMA_PHI),
-        "--AMPT_norm", str(AMPT_NORM),
-        "--AMPT_etas_cut", str(ETAS_CUT),
+        "--save_BD", str(input_parameters.SAVE_BD),
+        "--save_hydro", str(input_parameters.SAVE_HYDRO),
+        "--save_Tmunu", str(input_parameters.SAVE_TMUNU),
+        "--save_observables", str(input_parameters.SAVE_OBSERVABLES),
+        "--save_init_info", str(input_parameters.SAVE_INIT_INFO),
+        "--nx", str(input_parameters.NX),
+        "--xmax", str(input_parameters.XMAX),
+        "--nvp", str(input_parameters.NVP),
+        "--nvphi", str(input_parameters.NVPHI),
+        "--Z2_symmetry", str(input_parameters.Z2_SYMMETRY),
+        "--h", str(input_parameters.H),
+        "--tau_max", str(input_parameters.TAU_MAX),
+        "--tau0", str(input_parameters.TAU0),
+        "--initialization_mode", str(input_parameters.INIT_MODE),
+        "--momentum_isotropicity", str(input_parameters.MOM_ISO),
+        "--energy_tot_tau0", str(input_parameters.ENERGY_TAU0),
+        "--R0", str(input_parameters.R0),
+        "--ellipticity", str(input_parameters.ELLIPTICITY),
+        "--C0", str(input_parameters.C0),
+        "--epsFO", str(input_parameters.EPSFO),
+        "--TFO", str(input_parameters.TEMP_FO),
+        "--EOS_mode", str(input_parameters.EOS_MODE),
+        "--dissipation_mode", str(input_parameters.DISS_MODE),
+        "--eta_over_s_min", str(input_parameters.ETA_OVER_S_MIN),
+        "--eta_over_s_slope", str(input_parameters.ETA_OVER_S_SLOPE),
+        "--eta_over_s_pow", str(input_parameters.ETA_OVER_S_POW),
+        "--eta_over_s_Tc", str(input_parameters.ETA_OVER_S_TC),
+        "--grid_max", str(input_parameters.grid_max),
+        "--grid_step", str(input_parameters.grid_step),
+        "--norm", str(input_parameters.NORM),
+        "--smear_sigmaV", str(input_parameters.SMEAR_SIGMA_V),
+        "--smear_lambda", str(input_parameters.SMEAR_LAMBDA),
+        "--smear_sigmaPhi", str(input_parameters.SMEAR_SIGMA_PHI),
+        "--AMPT_norm", str(input_parameters.AMPT_NORM),
+        "--AMPT_etas_cut", str(input_parameters.ETAS_CUT),
         "--AMPT_file", ampt_file,
-        "--insert_threshold", str(INSERT_THRESHOLD),
-        "--number_of_divistion", str(NUM_DIVISION),
-        "--remove_threshold", str(REMOVE_THRESHOLD),
-        "--number_of_cores_BoltzEq_solver", str(CORES_BOLTZ),
-        "--number_of_cores_integration", str(CORES_INT),
-        "--number_of_cores_interpolation", str(CORES_INTERP),
-        "--number_of_cores_calc_obs", str(CORES_OBS),
-        "--end_evol_last_frozen_cell", str(END_EVOL_LAST_FROZEN_CELL),
-        "--calculate_freeze_out", str(CALCULATE_FREEZE_OUT)
+        "--insert_threshold", str(input_parameters.INSERT_THRESHOLD),
+        "--number_of_divistion", str(input_parameters.NUM_DIVISION),
+        "--remove_threshold", str(input_parameters.REMOVE_THRESHOLD),
+        "--number_of_cores_BoltzEq_solver", str(input_parameters.CORES_BOLTZ),
+        "--number_of_cores_integration", str(input_parameters.CORES_INT),
+        "--number_of_cores_interpolation", str(input_parameters.CORES_INTERP),
+        "--number_of_cores_calc_obs", str(input_parameters.CORES_OBS),
+        "--end_evol_last_frozen_cell", str(input_parameters.END_EVOL_LAST_FROZEN_CELL),
+        "--calculate_freeze_out", str(input_parameters.CALCULATE_FREEZE_OUT)
     ]
     return cmd
 
@@ -176,12 +257,23 @@ def find_IS_files(directory):
 
     return files
 
-def main():
-
+def main(temp_path, out_path, out_file):
+    print(temp_path, out_path, out_file)
     # Create a root file and a tree
-    if particlization or afterburner_stage:
-        if save_frzout_particles_ROOT_format or save_urqmd_particles_ROOT_format:
-            file = ROOT.TFile(save_particles_path + "ComBolt-events.root", "RECREATE")
+    if input_parameters.particlization or input_parameters.afterburner_stage:
+        if input_parameters.save_frzout_particles_ROOT_format or input_parameters.save_urqmd_particles_ROOT_format:
+
+
+
+            os.makedirs(out_path, exist_ok=True)  # Create dir if it doesn't exist
+
+            filename = os.path.join(out_path, out_file + ".root")
+
+            print(f"Opening ROOT file: '{filename}'")
+            file = ROOT.TFile(filename, "RECREATE")
+
+
+            # file = ROOT.TFile(input_parameters.save_particles_path + "ComBolt-events.root", "RECREATE")
             file.SetCompressionLevel(1)  # faster I/O (less CPU usage, larger file)
             tree = ROOT.TTree("Events", "ComBolt_events")
             
@@ -197,36 +289,85 @@ def main():
             sampleID = np.zeros(1, dtype=int)
             tree.Branch("sampleID", sampleID, "sampleID/I")
     
-        if save_frzout_particles_ROOT_format:
+        if input_parameters.save_init_info_ROOT_format:
+            initial_information = std.vector(ROOT.initial_info)()    
+            tree.Branch("initial_information", initial_information)
+        
+        if input_parameters.save_frzout_particles_ROOT_format:
             particles_frzout = std.vector(ROOT.particle_frzout)()    
             tree.Branch("particles_frzout", particles_frzout)
 
-        if save_urqmd_particles_ROOT_format:
+        if input_parameters.save_urqmd_particles_ROOT_format:
             particles_urqmd = std.vector(ROOT.particle_urqmd)()    
             tree.Branch("particles_urqmd", particles_urqmd)
 
     # We generate many events
     event_id = 0
-    for nevent in range(0, number_of_events):
+    for nevent in range(0, input_parameters.number_of_events):
 
         # => Generate initial state
 
         IS_FILE = ""
         # ---> TrENTo initil state
-        if INIT_MODE == 1:
-            print(f"\nGenerating TrENTo event {nevent} ...")
-            try:
-                trento_cmd = build_TrENTo_cmd(TEMP_PATH + "IS_data")
-                subprocess.run(trento_cmd, check=True)
-                IS_FILE = TEMP_PATH + "IS_data/0.dat"
-                print("TrENTo event is generated.")
-            except subprocess.CalledProcessError as e:
-                print("TrENTo execution failed:", e)
-        # ---> AMPT initial state
-        elif INIT_MODE == 2:
+       
+
+        if input_parameters.INIT_MODE == 1:
+             print(f"\nGenerating TrENTo event {nevent} ...")
+             try:
+                 trento_cmd = build_TrENTo_cmd(temp_path + "IS_data")
+                 print(trento_cmd)
+                 subprocess.run(trento_cmd, check=True)
+                 IS_FILE = temp_path + "IS_data/0.dat"
+                 print("TrENTo event is generated.")
+             except subprocess.CalledProcessError as e:
+                 print("TrENTo execution failed:", e)
+        
+        # if input_parameters.INIT_MODE == 1:
+        #     print(f"\nGenerating TrENTo event {nevent} ...")
+        #     try:
+        #        
+        #         is_data_dir = os.path.join(temp_path, "IS_data")
+        #         #  print(f"Creating directory: {is_data_dir}")
+        #         os.makedirs(is_data_dir, exist_ok=True)
+        #         # print(f"Directory exists now? {os.path.isdir(is_data_dir)}")
+ 
+        #         trento_cmd = build_TrENTo_cmd(temp_path + "IS_data")
+        #         print("Running command:", ' '.join(trento_cmd))
+        # 
+        #         # Optionally: open log file
+        #         # with open("trento_output.log", "w") as logfile:
+        #         proc = subprocess.Popen(
+        #             trento_cmd,
+        #             stdout=subprocess.PIPE,
+        #             stderr=subprocess.STDOUT,
+        #             text=True
+        #         )
+
+
+        #         
+        #         for line in proc.stdout:
+        #             print(line, end='')  # Print TrENTo output live
+        #             # logfile.write(line)  # Optionally save to file
+        # 
+        #         proc.wait()
+        #         if proc.returncode != 0:
+        #             raise subprocess.CalledProcessError(proc.returncode, trento_cmd)
+        # 
+        #         IS_FILE = temp_path + "IS_data/0.dat"
+        #         print("TrENTo event is generated.")
+        # 
+        #     except subprocess.CalledProcessError as e:
+        #         print("\n[ERROR] TrENTo execution failed with exit code:", e.returncode)
+        #     except Exception as e:
+        #         print("\n[ERROR] Unexpected error running TrENTo:", e)
+        
+
+
+        #---> AMPT initial state
+        elif input_parameters.INIT_MODE == 2:
             print(f"\nGenerating AMPT event {nevent} ...")
-            AMPT_cmd, AMPT_folder = build_AMPT_cmd(TEMP_PATH + "IS_data")
-            IS_FILE = TEMP_PATH + "IS_data/Ampt-v1.26t9b-v2.26t9b/ana/parton-initial-afterPropagation.dat"
+            AMPT_cmd, AMPT_folder = build_AMPT_cmd(temp_path + "IS_data")
+            IS_FILE = temp_path + "IS_data/Ampt-v1.26t9b-v2.26t9b/ana/parton-initial-afterPropagation.dat"
             AMPT_FILE = IS_FILE
             subprocess.run(AMPT_cmd, cwd=AMPT_folder, check=True)
         else:
@@ -235,21 +376,45 @@ def main():
         # => Running ComBolt-ITA
         try:
             print("ComBolt-ITA is running ... (it takes a while)")
-            combolt_cmd = build_ComBolt_cmd(IS_FILE, INIT_MODE)
+            combolt_cmd = build_ComBolt_cmd(IS_FILE, input_parameters.INIT_MODE)
             subprocess.run(combolt_cmd, check=True)
             print("ComBolt execution completed.")
         except subprocess.CalledProcessError as e:
             print("ComBolt execution failed:", e)
+        
+        # => Save initial information in root
 
+        if input_parameters.save_init_info_ROOT_format:
+            initial_info_path_filename = os.path.join(temp_path, f"init_inf.dat")
+            with open(initial_info_path_filename, 'r') as f:
+                for line in f:
+                    parts = line.split()
+                    init_inf = ROOT.initial_info(
+                                                     float(parts[0]),
+                                                     float(parts[1]),
+                                                     float(parts[2]),
+                                                     float(parts[3]),
+                                                     float(parts[4]),
+                                                     float(parts[5]),
+                                                     float(parts[6]),
+                                                     float(parts[7]),
+                                                     float(parts[8]),
+                                                     float(parts[9]),
+                                                     float(parts[10]),
+                                                     float(parts[11]),
+                                                     float(parts[12]),
+                                                     float(parts[13])
+                                                 )
+                    initial_information.push_back(init_inf)
 
         # => Particlization and afterburner
-        if particlization or afterburner_stage:
-            if afterburner_stage:
+        if input_parameters.particlization or input_parameters.afterburner_stage:
+            if input_parameters.afterburner_stage:
                 print("Duke particlization and UrQMD afterburner is running ...")
             else:    
                 print("Duke particlization is running ...")
             
-            SURFACE_FILE = f"{SURFACE_DIR}surface.dat"
+            SURFACE_FILE = f"{temp_path}surface.dat"
             if not os.path.exists(SURFACE_FILE):
                 print(f"Surface file not found at: {SURFACE_FILE}")
                 print("Aborting event due to missing freeze-out surface file.")
@@ -257,37 +422,38 @@ def main():
     
             x, sigma, v, pi, Pi = load_surface(SURFACE_FILE)
 
-            surface = frzout.Surface(x, sigma, v, pi=pi, Pi=Pi, ymax=ymax)
-            hrg = frzout.HRG(swiching_temp, species='urqmd', res_width=True)
+            surface = frzout.Surface(x, sigma, v, pi=pi, Pi=Pi, ymax=input_parameters.ymax)
+            hrg = frzout.HRG(input_parameters.swiching_temp, species='urqmd', res_width=True, decay_f500=True)
+            # hrg = frzout.HRG(input_parameters.swiching_temp, species='urqmd', res_width=True)
         
-            urqmd_input      = os.path.join(TEMP_PATH, "urqmd_input.dat")
-            osc2u_executable = os.path.join(afterburner_path, "build/osc2u/osc2u")
-            urqmd_executable = os.path.join(afterburner_path, "build/urqmd/urqmd")
-            urqmd_conf       = os.path.join(TEMP_PATH, "urqmd.conf")
+            urqmd_input      = os.path.abspath( os.path.join(temp_path, "urqmd_input.dat")  )
+            osc2u_executable = os.path.abspath( os.path.join(input_parameters.afterburner_path, "build/osc2u/osc2u")  )
+            urqmd_executable = os.path.abspath( os.path.join(input_parameters.afterburner_path, "build/urqmd/urqmd")  )
+            urqmd_conf       = os.path.abspath( os.path.join(temp_path, "urqmd.conf")  )
 
             ComBolt_eventID[0] = nevent
             # Sampling particles
-            for sample_itr in range(0, overSampling):
+            for sample_itr in range(0, input_parameters.overSampling):
                 # CLEAR VECTORS BEFORE ADDING NEW PARTICLES
-                if save_frzout_particles_ROOT_format:
+                if input_parameters.save_frzout_particles_ROOT_format:
                     particles_frzout.clear()
     
-                if save_urqmd_particles_ROOT_format:
+                if input_parameters.save_urqmd_particles_ROOT_format:
                     particles_urqmd.clear()
                 
                 eventID[0] = event_id
                 sampleID[0] = sample_itr
 
 
-                if save_frzout_particles_plain_format:
+                if input_parameters.save_frzout_particles_plain_format:
                     input_path_filename = os.path.join(save_particles_path, f"p_in_{nevent}_{sample_itr}.dat")
                 else:
-                    input_path_filename = os.path.join(TEMP_PATH, f"p_in_{nevent}_{sample_itr}.dat")
+                    input_path_filename = os.path.join(temp_path, f"p_in_{nevent}_{sample_itr}.dat")
 
-                if save_urqmd_particles_plain_format:
+                if input_parameters.save_urqmd_particles_plain_format:
                     output_path_filename = os.path.join(save_particles_path, f"p_out_{nevent}_{sample_itr}.dat")
                 else:
-                    output_path_filename = os.path.join(TEMP_PATH, f"p_out_{nevent}_{sample_itr}.dat")
+                    output_path_filename = os.path.join(temp_path, f"p_out_{nevent}_{sample_itr}.dat")
         
                 particles = frzout.sample(surface, hrg)
                 if particles.size == 0:
@@ -299,7 +465,7 @@ def main():
                     for p in particles:
                         print(p['ID'], *p['x'], *p['p'], file=f)
 
-                        if save_frzout_particles_ROOT_format:
+                        if  input_parameters.save_frzout_particles_ROOT_format:
                             particle_frzout = ROOT.particle_frzout(
                                                             int(p['ID']),
                                                             float(p['x'][0]),
@@ -312,15 +478,31 @@ def main():
                                                             float(p['p'][3])
                                                         )
                             particles_frzout.push_back(particle_frzout)
+
+
+                            # phiphi = np.arctan2( p['p'][2], p['p'][1] ) + np.pi
+                            # # make histogram
+                            # plt.hist(phiphi, bins=36, range=(0, 2*np.pi), density=True, histtype='step', linewidth=2)
+                            # 
+                            # # nice labels
+                            # plt.xlabel(r'$\phi$ [rad]')
+                            # plt.ylabel('Normalized counts')
+                            # plt.title('Azimuthal distribution of particles')
+                            # 
+                            # plt.xlim(0, 2*np.pi)
+                            # print(phiphi)
+                            # # save figure
+                            # plt.savefig("/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/ROOT-macro/01-pTSpectrum/phi_distribution_fout.png", dpi=300, bbox_inches="tight")
+                            # plt.close() 
                 
-                if afterburner_stage:
+                if input_parameters.afterburner_stage:
                     with open(urqmd_input, 'w') as out_file, open(input_path_filename, 'r') as in_file:
                         subprocess.run([osc2u_executable], 
                                        stdin=in_file, 
                                        stdout=out_file, 
                                        stderr=subprocess.DEVNULL, 
                                        check=True,
-                                       cwd=TEMP_PATH  # Run the command *inside* temp_dir
+                                       cwd=temp_path  # Run the command *inside* temp_dir
                                        )
 
                     # Create urqmd.conf if not exists
@@ -338,13 +520,13 @@ def main():
                                    env=env, 
                                    stdout=subprocess.DEVNULL, 
                                    stderr=subprocess.DEVNULL,
-                                   cwd=TEMP_PATH  # Run the command *inside* temp_dir
+                                   cwd=temp_path  # Run the command *inside* temp_dir
                                    ) # subprocess.DEVNULL: makes the UrQMD output silent           
 
                     if result.returncode != 0:
                         print(" UrQMD failed with return code:", result.returncode)
                     # Save UrQMD output in ROOT format
-                    if save_urqmd_particles_ROOT_format:
+                    if input_parameters.save_urqmd_particles_ROOT_format:
                 
                         with open(output_path_filename, 'r') as f:
                             for line in f:
@@ -365,36 +547,49 @@ def main():
                                                                     float(parts[7])
                                                                 )
                                 particles_urqmd.push_back(particle_urqmd)
-                
+                                # # make histogram
+                                # plt.hist(parts[5], bins=36, range=(0, 2*np.pi), density=True, histtype='step', linewidth=2)
+                                # 
+                                # # nice labels
+                                # plt.xlabel(r'$\phi$ [rad]')
+                                # plt.ylabel('Normalized counts')
+                                # plt.title('Azimuthal distribution of particles')
+                                # 
+                                # plt.xlim(0, 2*np.pi)
+                                # print(parts[5])
+                                # # save figure
+                                # plt.savefig("/home/ktas/ge57vag/02-04-Aug-2025-ComBolt-ITA/ROOT-macro/01-pTSpectrum/phi_distribution_pyth.png", dpi=300, bbox_inches="tight")
+                                # plt.close() 
                 # Fill the TTree
                 event_id += 1
-                if particlization or afterburner_stage:
-                    if save_frzout_particles_ROOT_format or save_urqmd_particles_ROOT_format:
+                if input_parameters.particlization or input_parameters.afterburner_stage:
+                    if input_parameters.save_frzout_particles_ROOT_format or input_parameters.save_urqmd_particles_ROOT_format:
                         tree.Fill()
                         # Save the result after all over samplings to avoid loosing data due to intruption.
-                        if event_id % overSampling == 0:
+                        if event_id % input_parameters.overSampling == 0:
                             tree.AutoSave("SaveSelf")
             
-            if afterburner_stage:
+            if input_parameters.afterburner_stage:
                 print("Duke particlization and UrQMD afterburner execution completed.")
             else:    
                 print("Duke particlization is done.")
         
 
         # Clean up the temporary folder
-        if os.path.exists(TEMP_PATH) and os.path.isdir(TEMP_PATH):
-            shutil.rmtree(TEMP_PATH)
+        if os.path.exists(temp_path) and os.path.isdir(temp_path):
+           shutil.rmtree(temp_path)
 
     
-    if particlization or afterburner_stage:
-        if save_frzout_particles_ROOT_format or save_urqmd_particles_ROOT_format:
-            file.Write()
+    if input_parameters.particlization or input_parameters.afterburner_stage:
+        if input_parameters.save_frzout_particles_ROOT_format or input_parameters.save_urqmd_particles_ROOT_format:
+            # file.Write()    #AutoSave should handel this
             file.Close()
 
 
 # Run the script
 if __name__ == "__main__":
-    main()
+    # Run main with out_file
+    main(temp_path,out_path, out_file)
 
 
 

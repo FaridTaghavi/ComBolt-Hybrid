@@ -126,12 +126,16 @@ void Administration::save_obs(const observables& obs, const std::string& filenam
     << std::left << std::setw(fieldWidth) << obs.eps_tot 
     << std::left << std::setw(fieldWidth) << obs.eps_2_x
     << std::left << std::setw(fieldWidth) << obs.eps_2_y 
+    << std::left << std::setw(fieldWidth) << obs.eps_3_x
+    << std::left << std::setw(fieldWidth) << obs.eps_3_y
     << std::left << std::setw(fieldWidth) << obs.eps_p_x 
     << std::left << std::setw(fieldWidth) << obs.eps_p_y
     << std::left << std::setw(fieldWidth) << obs.u_perp
     << std::left << std::setw(fieldWidth) << obs.av_invReyn
     << std::left << std::setw(fieldWidth) << obs.Etr 
-    << std::left << std::setw(fieldWidth) << obs.R 
+    << std::left << std::setw(fieldWidth) << obs.Rsq
+    << std::left << std::setw(fieldWidth) << obs.gamma_hat
+    << std::left << std::setw(fieldWidth) << obs.life_time
     << std::endl;
 
     outfile.close();

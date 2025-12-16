@@ -70,6 +70,19 @@ struct dissipation_info
     const double gamma_hat {200.0};
 
 };
+
+struct dissipation_info
+{
+    const unsigned int dissipation_mode {0}; // 0. eta / s, 1. opacity   
+    
+    const double eta_over_s_min {1.0 / (4. * M_PI)}; 
+    const double eta_over_s_slope {0.0 * hbarC}; // in fm 
+    const double eta_over_s_pow {0.0};
+    const double eta_over_s_Tc {0.155 / hbarC}; // in fm
+    const double gamma_hat {200.0};
+
+};
+
 struct trento_info
 {
     const double grid_max  {15.0};

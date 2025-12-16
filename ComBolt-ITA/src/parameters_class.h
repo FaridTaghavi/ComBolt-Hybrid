@@ -29,6 +29,7 @@ public:
         bool save_hydro;
         bool save_Tmunu;
         bool save_observables; 
+        bool save_init_inf; 
 
         saving_info( 
             const std::string save_folder_ = "/home/farid/MyRepositories/KineticTheory/evolution/",
@@ -36,14 +37,16 @@ public:
             const bool save_BD_ = false,
             bool save_hydro_ = true,
             bool save_Tmunu_ = false,
-            bool save_observables_ = true
+            bool save_observables_ = true,
+            bool save_init_inf_ = true
           ) :
           save_folder(save_folder_),
           surface_folder(surface_folder_),
           save_BD(save_BD_),
           save_hydro(save_hydro_),
           save_Tmunu(save_Tmunu_),
-          save_observables(save_observables_)
+          save_observables(save_observables_),
+          save_init_inf(save_init_inf_)
           {};
     };
     struct lattice_info
@@ -128,33 +131,50 @@ public:
     {
         const double C0; //Confomtal equation of state: energy = C0 * T^4
         const double epsFO; 
+        const double TFO; 
+        const unsigned int EOS_mode; // 0: conformal EOS, 1: lattice EOS
 
         medium_info(
             const double C0_ = 13.8997,
-            const double epsFO_ = 0.30 / hbarC // 1/fm^4
+            const double epsFO_ = 0.30 / hbarC, // 1/fm^4
+            const double TFO_ = 0.155 / hbarC, // 1/fm
+            const unsigned int EOS_mode_ = 0
           ) :
           C0(C0_),
-          epsFO(epsFO_)
+          epsFO(epsFO_),
+          TFO(TFO_),
+          EOS_mode(EOS_mode_)
           {};
 
     };
+    
     struct dissipation_info
     {
         const unsigned int dissipation_mode; 
-        const double eta_over_s; 
+        const double eta_over_s_min; 
+        const double eta_over_s_slope;
+        const double eta_over_s_pow;
+        const double eta_over_s_Tc;
         const double gamma_hat;
 
         dissipation_info(
-            const unsigned int dissipation_mode_ = 0,// 0. eta / s, 1. opacity   
-            const double eta_over_s_ = 1.0 / (4. * M_PI),
+            const unsigned int dissipation_mode_ = 0, // 0: eta/s constant, 1: opacity constant, 2:  constant eta / s with tau_relax(ed) with from lattice.
+            const double eta_over_s_min_ = 1.0 / (4. * M_PI),
+            const double eta_over_s_slope_ = 0.0 * hbarC,
+            const double eta_over_s_pow_ = 0.0,
+            const double eta_over_s_Tc_ = 0.155 / hbarC,
             const double gamma_hat_ = 200.0
           ) :
           dissipation_mode(dissipation_mode_),
-          eta_over_s(eta_over_s_),
+          eta_over_s_min(eta_over_s_min_),
+          eta_over_s_slope(eta_over_s_slope_),
+          eta_over_s_pow(eta_over_s_pow_),
+          eta_over_s_Tc(eta_over_s_Tc_),
           gamma_hat(gamma_hat_)
           {};
 
     };
+
     struct trento_info
     {
         const double grid_max;
@@ -260,8 +280,54 @@ public:
           {};
     };
 
+    struct lattice_info_massive
+    {
+        const size_t  n_x;
+        const size_t  n_y;
+        const size_t  n_pT;
+        const size_t  n_phi_p;
+        const size_t  n_pz;
+        const double  x_min, x_max;
+        const double  y_min, y_max;
+        const double  phi_p_max;
+        const double  pT_max;
+        const double  pz_max;
+        const bool    Z2_symmetry;
+
+        lattice_info_massive( 
+            const size_t n_x_ = 101,
+            const double x_max_ = 19.5,
+            const size_t n_pT_ = 15,
+            const size_t n_phi_p_ = 40,
+            const size_t n_pz_ = 15, // For Z2 symmetry false, n_pz should be odd to have pz = 0 in the grid
+            // const double pT_min_ = 0.0,
+            const double pT_max_ = 10.0,
+            // const double pz_min_ = 0.0, 
+            const double pz_max_ = 10.0,
+            const bool Z2_symmetry_ = true
+          ) :
+          n_x(n_x_),
+          x_max(x_max_),
+          n_pT(n_pT_),
+          n_phi_p(n_phi_p_),
+          n_pz(n_pz_),
+          Z2_symmetry(Z2_symmetry_),
+          n_y(n_x_),
+          x_min(-x_max_),
+          y_min(-x_max_),
+          y_max(x_max_),
+          // phi_p_min(0.),
+          phi_p_max(2. * M_PI - 2 * M_PI / n_phi_p_),
+          // pT_min(pT_min_),
+          pT_max(pT_max_),
+          // pz_min(pz_min_),
+          pz_max(pz_max_) 
+          {};
+
+    };
     saving_info saving_info_;
     lattice_info lattice_info_;
+    lattice_info_massive lattice_info_massive_;
     numerical_calc_param numerical_calc_param_;
     initial_values initial_values_;
     medium_info medium_info_;
@@ -276,6 +342,7 @@ public:
     parameters_class(
         const saving_info& saving_info_,
         const lattice_info& lattice_info_,
+        const lattice_info_massive& lattice_info_massive_,
         const numerical_calc_param& numerical_calc_param_,
         const initial_values& initial_values_,
         const medium_info& medium_info_,
@@ -289,6 +356,7 @@ public:
     ) 
         : saving_info_(saving_info_), 
           lattice_info_(lattice_info_), 
+          lattice_info_massive_(lattice_info_massive_), 
           numerical_calc_param_(numerical_calc_param_), 
           initial_values_(initial_values_), 
           medium_info_(medium_info_), 
