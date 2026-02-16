@@ -69,7 +69,7 @@ Main components:
 - C++ compiler with C++17 support  
 - CMake (≥ 3.10 recommended)  
 - Fortran compiler (for UrQMD)  
-- Python (optional, for analysis scripts)  
+- Python
 
 ---
 
@@ -92,23 +92,11 @@ Adjust compiler flags or toolchain settings if needed for your system.
 
 1. Generate initial conditions
 
-   ./trento [options]
-
 2. Run CoMBolt-ITA evolution
-
-   ./ComBoltITA --config config.yaml
-
-3. Particlization / freeze-out
-
-   Convert kinetic output into particle distributions using the provided freeze-out utilities.
 
 4. Hadronic afterburner
 
-   afterburner input.dat output.dat
-
 5. Analysis
-
-   Post-process final particle data to compute flow harmonics (v_n), multiplicity distributions, transverse momentum spectra, and correlation observables.
 
 ---
 
@@ -148,21 +136,21 @@ If you use this framework, please cite:
 
 ## 🤝 Contributing
 
-Contributions are welcome. Possible improvements include:
+# Contributions are welcome. Possible improvements include:
 
-- Extended documentation and tutorials  
-- Validation benchmarks  
-- Additional collision systems  
-- Performance optimization  
-- Extended transport kernels or equation-of-state options  
+# - Extended documentation and tutorials  
+# - Validation benchmarks  
+# - Additional collision systems  
+# - Performance optimization  
+# - Extended transport kernels or equation-of-state options  
 
-Please open an issue or submit a pull request.
+# Please open an issue or submit a pull request.
 
 ---
 
 ## 📄 License
 
-Specify the project license here (e.g., MIT, GPL, etc.).
+# Specify the project license here (e.g., MIT, GPL, etc.).
 
 ---
 
