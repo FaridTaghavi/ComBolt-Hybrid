@@ -134,9 +134,9 @@ If you use this framework, please cite:
 
 ---
 
-## 🤝 Contributing
+<!--## 🤝 Contributing
 
-# Contributions are welcome. Possible improvements include:
+ Contributions are welcome. Possible improvements include:
 
 # - Extended documentation and tutorials  
 # - Validation benchmarks  
@@ -144,16 +144,30 @@ If you use this framework, please cite:
 # - Performance optimization  
 # - Extended transport kernels or equation-of-state options  
 
-# Please open an issue or submit a pull request.
-
+# Please open an issue or submit a pull request. -->
 ---
 
 ## 📄 License
 
-# Specify the project license here (e.g., MIT, GPL, etc.).
+This project is licensed under the MIT License.
+
+The MIT License is a permissive open-source license that allows anyone to use, modify, distribute, and sublicense this software for any purpose, including commercial use, provided that the original copyright notice and license text are included in all copies or substantial portions of the software.
+
+In short, you are free to:
+
+- Use the software for any purpose  
+- Modify the source code  
+- Distribute original or modified versions  
+- Use it in private or commercial projects  
+
+This software is provided "as is", without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
+
+See the `LICENSE` file in this repository for the full license text.
 
 ---
 
 ## Acknowledgments
 
-This project builds upon widely used community tools such as TrENTo and UrQMD and contributes to ongoing efforts in kinetic theory modeling of relativistic nuclear collisions.
+This project has been supported by the Deutsche Forschungsgemeinschaft (DFG) with grant no. 517518417.
+Seyed Farid Taghavi gratefully acknowledges the financial support that enabled the development of the ComBolt framework.
+
