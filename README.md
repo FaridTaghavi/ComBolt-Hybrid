@@ -6,7 +6,7 @@ This project implements the **CoMBolt-ITA hybrid approach**, based on the relati
 
 ---
 
-## 🚀 Overview
+## Overview
 
 ComBolt-Hybrid provides an end-to-end simulation pipeline for relativistic nuclear collisions:
 
@@ -19,7 +19,7 @@ The framework bridges microscopic transport theory and macroscopic collective fl
 
 ---
 
-## 🧠 Physics Background
+## Physics Background
 
 ### CoMBolt-ITA
 
@@ -44,7 +44,7 @@ These works demonstrate that CoMBolt-ITA reproduces viscous hydrodynamic behavio
 
 ---
 
-## 📦 Repository Structure
+## Repository Structure
 
 ComBolt-Hybrid/
 ├── ComBolt-ITA/              # Core kinetic evolution module  
@@ -64,7 +64,7 @@ Main components:
 
 ---
 
-## 🛠️ Requirements
+## Requirements
 
 - C++ compiler with C++17 support  
 - CMake (≥ 3.10 recommended)  
@@ -73,7 +73,7 @@ Main components:
 
 ---
 
-## 🔧 Build Instructions
+## Build Instructions
 
 git clone https://github.com/FaridTaghavi/ComBolt-Hybrid.git  
 cd ComBolt-Hybrid  
@@ -88,7 +88,7 @@ Adjust compiler flags or toolchain settings if needed for your system.
 
 ---
 
-## ▶️ Typical Workflow
+## Typical Workflow
 
 1. Generate initial conditions
 
@@ -100,7 +100,7 @@ Adjust compiler flags or toolchain settings if needed for your system.
 
 ---
 
-## 🔬 Scientific Scope
+## Scientific Scope
 
 This framework is suited for:
 
@@ -112,7 +112,7 @@ This framework is suited for:
 
 ---
 
-## 📚 Citation
+## Citation
 
 If you use this framework, please cite:
 
@@ -134,7 +134,7 @@ If you use this framework, please cite:
 
 ---
 
-<!--## 🤝 Contributing
+<!--## Contributing
 
  Contributions are welcome. Possible improvements include:
 
@@ -147,7 +147,7 @@ If you use this framework, please cite:
 # Please open an issue or submit a pull request. -->
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
