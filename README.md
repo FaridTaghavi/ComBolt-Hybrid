@@ -91,6 +91,12 @@ Adjust compiler flags or toolchain settings if needed for your system.
 
 ---
 
+## Run
+
+python run-ComBolt-hyb.py input_parameters.py
+
+---
+
 ## Typical Workflow
 
 1. Generate initial conditions
