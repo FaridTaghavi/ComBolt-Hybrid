@@ -47,10 +47,15 @@ These works demonstrate that CoMBolt-ITA reproduces viscous hydrodynamic behavio
 ## Repository Structure
 
 ComBolt-Hybrid/
+
 ├── trento-master/            # Initial condition generator (TrENTo)  
+
 ├── Ampt-v1.26t9b-v2.26t9b/    # AMPT snapshots (reference / comparison)  
+
 ├── ComBolt-ITA/              # Core kinetic evolution module
+
 ├── frzout/                   # Freeze-out and particlization tool 
+
 └── urqmd-afterburner/        # Hadronic cascade (UrQMD)
 
 Main components:
