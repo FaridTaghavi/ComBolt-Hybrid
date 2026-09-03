@@ -11,7 +11,7 @@ This project implements the **CoMBolt-ITA hybrid approach**, based on the relati
 ComBolt-Hybrid provides an end-to-end simulation pipeline for relativistic nuclear collisions:
 
 1. Initial condition generation  
-2. Pre-equilibrium kinetic evolution (CoMBolt-ITA)  
+2. Far- and near-equilibrium evolution (CoMBolt-ITA)  
 3. Particlization / freeze-out  
 4. Hadronic afterburner evolution  
 
